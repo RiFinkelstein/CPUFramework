@@ -163,7 +163,8 @@ namespace CPUFramework
             foreach (DataColumn c in dt.Columns)
             {
                 c.AllowDBNull = true;
-                c.AutoIncrement = false;    
+                c.AutoIncrement = false;
+                c.ReadOnly = false;
             }
         }
         public static int GetValueFromFirstRowAsInt(DataTable dt, string columnname)
