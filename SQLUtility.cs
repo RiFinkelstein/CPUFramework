@@ -330,11 +330,11 @@ public static string ParseConstraintMsg(string msg)
     {
         userFriendlyMsg = "Invalid input: Please ensure all required fields are filled out correctly.";
     }
-    else if (msg.Contains("U_"))
+    else if (msg.Contains("u_"))
     {
         userFriendlyMsg = "Duplicate entry: The value you entered must be unique.";
     }
-    else if (msg.Contains("F_"))
+    else if (msg.Contains("f_"))
     {
         userFriendlyMsg = "Cannot delete this record as it is being used elsewhere.";
     }
