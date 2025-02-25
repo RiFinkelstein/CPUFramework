@@ -321,60 +321,34 @@ namespace CPUFramework
         }
 
 
-        public static string ParseConstraintMsg(string msg)
-        {
+public static string ParseConstraintMsg(string msg)
+{
+    string origMsg = msg;
+    string userFriendlyMsg = "An error occurred while processing your request.";
 
-            string origmsg = msg;
-            string prefex = "ck_";
-            string msgend = "";
-            string notnullprefex = "Cannot insert the value NULL into column '";
-            if (msg.Contains(prefex) == false)
-            {
-                if (msg.Contains("u_"))
-                {
-                    prefex = "U_";
-                    msgend = "must be uniqe";
-                }
-                else if (msg.Contains("f_"))
-                {
-                    prefex = "f_";
-                }
-                else if (msg.Contains(notnullprefex)){
-                    prefex = notnullprefex;
-                    msgend = " cannot be blank.";
-                }
-            }
-            if (msg.Contains(prefex))
-            {
-                msg = msg.Replace("\"", "' ");
-                int pos = msg.IndexOf(prefex) + prefex.Length;
-                msg = msg.Substring(pos);
-                pos = msg.IndexOf("'");
-                if (pos == -1)
-                {
-                    msg = origmsg;
-                }
-                else
-                {
-                    msg = msg.Substring(0, pos);
-                    msg = msg.Replace("_", " ");
-                    msg = msg + msgend;
-
-                    if (prefex == "f_")
-                    {
-                        var words = msg.Split(' ');
-                        if (words.Length > 1)
-                        {
-                            msg = $" Cannot delete {words[0]} becasue it has a related {words[1]} record";
-                        }
-
-                    }
-                }
-            }
-            return msg;
-        }
-
-
+    if (msg.Contains("ck_"))
+    {
+        userFriendlyMsg = "Invalid input: Please ensure all required fields are filled out correctly.";
+    }
+    else if (msg.Contains("U_"))
+    {
+        userFriendlyMsg = "Duplicate entry: The value you entered must be unique.";
+    }
+    else if (msg.Contains("F_"))
+    {
+        userFriendlyMsg = "Cannot delete this record as it is being used elsewhere.";
+    }
+    else if (msg.Contains("Cannot insert the value NULL"))
+    {
+        userFriendlyMsg = "Missing required information: Please fill in all necessary fields.";
+    }
+    else if (msg.Contains("CHECK constraint"))
+    {
+        userFriendlyMsg = "Invalid data entry: Please make sure values meet the required conditions.";
+    }
+    
+    return userFriendlyMsg;
+}
 
     }
 
