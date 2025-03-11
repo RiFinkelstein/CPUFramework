@@ -322,34 +322,50 @@ namespace CPUFramework
         }
 
 
-public static string ParseConstraintMsg(string msg)
-{
-    string origMsg = msg;
-    string userFriendlyMsg = "An error occurred while processing your request.";
 
-    if (msg.Contains("ck_"))
-    {
-        userFriendlyMsg = "Invalid input: Please ensure all required fields are filled out correctly.";
-    }
-    else if (msg.Contains("u_"))
-    {
-        userFriendlyMsg = "Duplicate entry: The value you entered must be unique.";
-    }
-    else if (msg.Contains("f_"))
-    {
-        userFriendlyMsg = "Cannot delete this record as it is being used elsewhere.";
-    }
-    else if (msg.Contains("Cannot insert the value NULL"))
-    {
-        userFriendlyMsg = "Missing required information: Please fill in all necessary fields.";
-    }
-    else if (msg.Contains("CHECK constraint"))
-    {
-        userFriendlyMsg = "Invalid data entry: Please make sure values meet the required conditions.";
-    }
-    
-    return userFriendlyMsg;
-}
+
+
+
+            public static string ParseConstraintMsg(string msg)
+        {
+            string origMsg = msg;
+            string userFriendlyMsg = "An error occurred while processing your request.";
+
+            // Remove underscores and clean up constraint names
+            string cleanMsg = msg.Replace("_", " ");
+
+            // Remove duplicate words
+            string[] words = cleanMsg.Split(' ');
+            cleanMsg = string.Join(" ", words.Distinct(StringComparer.OrdinalIgnoreCase));
+
+            if (msg.Contains("ck_"))
+            {
+                userFriendlyMsg = "Invalid input: Please ensure all required fields are filled out correctly.";
+            }
+            else if (msg.Contains("u_"))
+            {
+                userFriendlyMsg = "Duplicate entry: The value you entered must be unique.";
+            }
+            else if (msg.Contains("f_"))
+            {
+                userFriendlyMsg = "Cannot delete this record as it is being used elsewhere.";
+            }
+            else if (msg.Contains("Cannot insert the value NULL"))
+            {
+                userFriendlyMsg = "Missing required information: Please fill in all necessary fields.";
+            }
+            else if (msg.Contains("CHECK constraint"))
+            {
+                userFriendlyMsg = "Invalid data entry: Please make sure values meet the required conditions.";
+            }
+            else
+            {
+                userFriendlyMsg = "Database error: " + cleanMsg;
+            }
+
+            return userFriendlyMsg;
+        }
+
 
     }
 
