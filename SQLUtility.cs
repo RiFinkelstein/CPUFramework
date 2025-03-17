@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -37,13 +38,13 @@ namespace CPUFramework
         public static void SaveDataTable(DataTable dt, string sprocname)
         {
             var rows = dt.Select("", "", DataViewRowState.Added | DataViewRowState.ModifiedCurrent);
-            foreach(DataRow r in rows)
+            foreach (DataRow r in rows)
             {
                 SaveDataRow(r, sprocname, false);
             }
         }
 
-        public static void SaveDataRow(DataRow row, string sprocname, bool acceptChanges= true)
+        public static void SaveDataRow(DataRow row, string sprocname, bool acceptChanges = true)
         {
             SqlCommand cmd = GetSqlcommand(sprocname);
             foreach (DataColumn col in row.Table.Columns)
@@ -53,7 +54,7 @@ namespace CPUFramework
                 {
                     cmd.Parameters[paramname].Value = row[col.ColumnName];
                 }
-            }         
+            }
             DoExecuteSQL(cmd, false);
             foreach (SqlParameter p in cmd.Parameters)
             {
@@ -154,7 +155,7 @@ namespace CPUFramework
 
 
         public static void ExecuteSQL(string sqlstatemnt)
-       {
+        {
             GetDataTable(sqlstatemnt);
         }
 
@@ -211,7 +212,7 @@ namespace CPUFramework
             StringBuilder sb = new StringBuilder();
             if (cmd.Connection != null)
             {
-               sb.AppendLine($"--{cmd.Connection.DataSource}");
+                sb.AppendLine($"--{cmd.Connection.DataSource}");
                 sb.AppendLine($"use {cmd.Connection.Database}");
                 sb.AppendLine("go");
 
@@ -320,54 +321,94 @@ namespace CPUFramework
                 throw new Exception(cmd.CommandText + ": " + ex.Message, ex);
             }
         }
-
-
-
-
-
-
-            public static string ParseConstraintMsg(string msg)
+        public static string ParseConstraintMsg(string msg)
         {
-            string origMsg = msg;
-            string userFriendlyMsg = "An error occurred while processing your request.";
+            string origmsg = msg;
+            string prefix = "ck_";
+            string msgend = "";
+            string notnullprefix = "Cannot insert the value NULL into column '";
 
-            // Remove underscores and clean up constraint names
-            string cleanMsg = msg.Replace("_", " ");
+            msg = msg.ToLower(); // Normalize case
 
-            // Remove duplicate words
-            string[] words = cleanMsg.Split(' ');
-            cleanMsg = string.Join(" ", words.Distinct(StringComparer.OrdinalIgnoreCase));
-
-            if (msg.Contains("ck_"))
+            if (!msg.Contains(prefix))
             {
-                userFriendlyMsg = "Invalid input: Please ensure all required fields are filled out correctly.";
-            }
-            else if (msg.Contains("u_"))
-            {
-                userFriendlyMsg = "Duplicate entry: The value you entered must be unique.";
-            }
-            else if (msg.Contains("f_"))
-            {
-                userFriendlyMsg = "Cannot delete this record as it is being used elsewhere.";
-            }
-            else if (msg.Contains("Cannot insert the value NULL"))
-            {
-                userFriendlyMsg = "Missing required information: Please fill in all necessary fields.";
-            }
-            else if (msg.Contains("CHECK constraint"))
-            {
-                userFriendlyMsg = "Invalid data entry: Please make sure values meet the required conditions.";
-            }
-            else
-            {
-                userFriendlyMsg = "Database error: " + cleanMsg;
+                if (msg.Contains("unique key"))
+                {
+                    prefix = "unique key";
+                }
+                else if (msg.Contains("f_"))
+                {
+                    prefix = "f_";
+                }
+                else if (msg.Contains(notnullprefix.ToLower()))
+                {
+                    prefix = notnullprefix.ToLower();
+                    msgend = " cannot be blank.";
+                }
             }
 
-            return userFriendlyMsg;
+            if (msg.Contains(prefix))
+            {
+                msg = msg.Replace("\"", "' "); // Standardize quotes
+
+                int pos = msg.IndexOf(prefix) + prefix.Length;
+                msg = msg.Substring(pos).Trim();
+
+                if (prefix == "unique key")
+                {
+                    int constraintNameStart = msg.IndexOf("'") + 1;
+                    int constraintNameEnd = msg.IndexOf("'", constraintNameStart);
+                    if (constraintNameStart > 0 && constraintNameEnd > constraintNameStart)
+                    {
+                        string constraintName = msg.Substring(constraintNameStart, constraintNameEnd - constraintNameStart);
+                        msg = FormatConstraintMessage(constraintName, msgend);
+                    }
+                    else
+                    {
+                        msg = origmsg; // Fallback if parsing fails
+                    }
+                }
+                else
+                {
+                    pos = msg.IndexOf("'");
+                    if (pos != -1)
+                    {
+                        msg = msg.Substring(0, pos).Replace("_", " ") + msgend;
+                    }
+
+                    if (prefix == "f_")
+                    {
+                        var words = msg.Split(' ');
+                        if (words.Length > 1)
+                        {
+                            msg = $"Cannot delete {words[0]} because it has a related {words[1]} record";
+                        }
+                    }
+                    else
+                    {
+                        // Now we correctly remove the first word **after** the prefix
+                        msg = FormatConstraintMessage(msg, msgend);
+                    }
+                }
+            }
+
+            return msg;
+        }
+
+        // Helper function to remove the first word **after** the prefix and format the message correctly
+        private static string FormatConstraintMessage(string constraintName, string msgend)
+        {
+            string[] words = constraintName.Split('_');
+            if (words.Length > 2)  // Ensure at least a prefix + two words exist
+            {
+                return string.Join(" ", words.Skip(2)) + msgend;  // Skip the first word after the prefix too
+            }
+            return constraintName + msgend; // Fallback in case of unexpected format
         }
 
 
+
+
+
     }
-
-
 }
