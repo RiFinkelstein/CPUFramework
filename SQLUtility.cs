@@ -215,8 +215,6 @@ namespace CPUFramework
                 sb.AppendLine($"--{cmd.Connection.DataSource}");
                 sb.AppendLine($"use {cmd.Connection.Database}");
                 sb.AppendLine("go");
-
-
             }
             if (cmd.CommandType == CommandType.StoredProcedure)
             {
@@ -335,6 +333,7 @@ namespace CPUFramework
                 if (msg.Contains("unique key"))
                 {
                     prefix = "unique key";
+                    msgend = " ";
                 }
                 else if (msg.Contains("f_"))
                 {
@@ -373,7 +372,7 @@ namespace CPUFramework
                     pos = msg.IndexOf("'");
                     if (pos != -1)
                     {
-                        msg = msg.Substring(0, pos).Replace("_", " ") + msgend;
+                        msg = msg.Substring(0, pos).Replace("_", " ");
                     }
 
                     if (prefix == "f_")
