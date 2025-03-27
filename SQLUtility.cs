@@ -15,7 +15,27 @@ namespace CPUFramework
 {
     public class SQLUtility
     {
-        public static string ConnectionString = "";
+        private static string ConnectionString = "";
+
+        public static void SetConnectionString(string connstring, bool tryopen, string username= "", string password= "")
+        {
+            ConnectionString= connstring;
+            if(username != "")
+            {
+                SqlConnectionStringBuilder b = new();
+                b.ConnectionString= ConnectionString;
+                b.UserID = username;
+                b.Password=  password;
+                ConnectionString= b.ConnectionString;
+            }
+            if (tryopen)
+            {
+                using(SqlConnection conn= new SqlConnection(ConnectionString))
+                {
+                    conn.Open();
+                }
+            }
+        }
 
         public static SqlCommand GetSqlcommand(string sprocname)
         {
@@ -212,6 +232,7 @@ namespace CPUFramework
             StringBuilder sb = new StringBuilder();
             if (cmd.Connection != null)
             {
+                //sb.AppendLine($"--{cmd.Connection.ConnectionString}");
                 sb.AppendLine($"--{cmd.Connection.DataSource}");
                 sb.AppendLine($"use {cmd.Connection.Database}");
                 sb.AppendLine("go");
