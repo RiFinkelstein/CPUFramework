@@ -70,7 +70,7 @@ namespace CPUFramework
                 if (prop != null)
                 {
                     object? val = prop.GetValue(this);
-                    if(val == null) { val= DBNull.Value; }
+                    if (val == null) { val = DBNull.Value; }
                     param.Value = val;
                 }
             }
@@ -84,12 +84,28 @@ namespace CPUFramework
                 }
             }
         }
-        public void Delete(DataTable datatable)
+        public void Delete(int id)
         {
-            int id = (int)datatable.Rows[0][_primarykeyname];
             SqlCommand cmd = SQLUtility.GetSqlcommand(_deletesproc);
             SQLUtility.SetParamValue(cmd, _primarykeyparamname, id);
             SQLUtility.ExecuteSQL(cmd);
+        }
+        public void Delete()
+        {
+            PropertyInfo? prop = GetProp(_primarykeyname, true, false);
+            if (prop != null)
+            {
+                object id = prop.GetValue(this);
+                if (id != null)
+                {
+                    this.Delete((int)id);
+                }
+            }
+        }
+        public void Delete(DataTable datatable)
+        {
+            int id = (int)datatable.Rows[0][_primarykeyname];
+Delete(id);
         }
 
         private PropertyInfo? GetProp(string propname, bool ForRead, bool ForWrite)
@@ -110,7 +126,8 @@ namespace CPUFramework
             var prop = GetProp(propname, false, true);
             if (prop != null)
             {
-                if (value == DBNull.Value) {
+                if (value == DBNull.Value)
+                {
                     value = null;
                 }
                 prop.SetValue(this, value);
