@@ -47,13 +47,7 @@ namespace CPUFramework
         {
             foreach (DataColumn col in dr.Table.Columns)
             {
-
-                string colname = col.ColumnName.ToLower();
-                PropertyInfo? prop = _properties.FirstOrDefault(p => p.Name.ToLower() == colname && p.CanWrite == true);
-                if (prop != null)
-                {
-                    prop.SetValue(this, dr[colname]);
-                }
+                SetProp(col.ColumnName, dr[col.ColumnName]);
             }
         }
 
@@ -72,30 +66,24 @@ namespace CPUFramework
             SqlCommand cmd = SQLUtility.GetSqlcommand(_updatesproc);
             foreach (SqlParameter param in cmd.Parameters)
             {
-                string colname = param.ParameterName.ToLower().Substring(1);
-                PropertyInfo? prop = _properties.FirstOrDefault(p => p.Name.ToLower() == colname && p.CanRead == true);
+                var prop = GetProp(param.ParameterName, true, false);
                 if (prop != null)
                 {
-                    param.Value= prop.GetValue(this);
+                    object? val = prop.GetValue(this);
+                    if(val == null) { val= DBNull.Value; }
+                    param.Value = val;
                 }
             }
             SQLUtility.ExecuteSQL(cmd);
-            foreach(SqlParameter param in cmd.Parameters)
+            foreach (SqlParameter param in cmd.Parameters)
             {
-                if(param.Direction== ParameterDirection.InputOutput)
+                if (param.Direction == ParameterDirection.InputOutput)
                 {
-                    string colname = param.ParameterName.ToLower().Substring(1);
-                    PropertyInfo? prop = _properties.FirstOrDefault(p => p.Name.ToLower() == colname && p.CanRead == true);
-                    if (prop != null)
-                    {
-                       prop.SetValue(this, param.Value);
-                    }
+                    SetProp(param.ParameterName, param.Value);
+
                 }
             }
         }
-
-
-
         public void Delete(DataTable datatable)
         {
             int id = (int)datatable.Rows[0][_primarykeyname];
@@ -103,6 +91,32 @@ namespace CPUFramework
             SQLUtility.SetParamValue(cmd, _primarykeyparamname, id);
             SQLUtility.ExecuteSQL(cmd);
         }
+
+        private PropertyInfo? GetProp(string propname, bool ForRead, bool ForWrite)
+        {
+            propname = propname.ToLower();
+            if (propname.StartsWith("@")) { propname = propname.Substring(1); }
+
+            PropertyInfo? prop = _properties.FirstOrDefault(p =>
+                p.Name.ToLower() == propname
+                && (ForRead == false || p.CanRead == true)
+                && (ForWrite == false || p.CanWrite == true)
+                );
+            return prop;
+        }
+
+        private void SetProp(string propname, object value)
+        {
+            var prop = GetProp(propname, false, true);
+            if (prop != null)
+            {
+                if (value == DBNull.Value) {
+                    value = null;
+                }
+                prop.SetValue(this, value);
+            }
+        }
+
         protected void InvokePropertyChanged([CallerMemberName] string propertyname = "")
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyname));
