@@ -50,11 +50,15 @@ namespace CPUFramework
         {
             List<T> lst = new();
             SqlCommand cmd = SQLUtility.GetSqlcommand(_getsproc);
-            SQLUtility.SetParamValue(cmd, "@all", 1);
-            SQLUtility.SetParamValue(cmd, "@includeBlank", includeblank);
+                SQLUtility.SetParamValue(cmd, "@all", 1);
+
+                SQLUtility.SetParamValue(cmd, "@includeBlank", includeblank);
+            
             var dt = SQLUtility.GetDataTable(cmd);
             return GetListFromDataTable(dt);
         }
+
+
 
         protected List<T> GetListFromDataTable(DataTable dt)
         {
